@@ -8,6 +8,7 @@ interface UseTaskPollingProps {
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   onFinish: () => void;
+  retryTimeout?: number;
 }
 
 export function useTaskPolling({
@@ -16,6 +17,7 @@ export function useTaskPolling({
   setIsLoading,
   setError,
   onFinish,
+  retryTimeout = 8000
 }: UseTaskPollingProps) {
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval>;
@@ -52,7 +54,7 @@ export function useTaskPolling({
     };
   
     if (currentTask && isLoading) {
-      intervalId = setInterval(pollTaskStatus, 2000);
+      intervalId = setInterval(pollTaskStatus, retryTimeout);
     }
   
     return () => {

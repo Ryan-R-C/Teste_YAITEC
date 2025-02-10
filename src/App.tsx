@@ -1,62 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NewspaperIcon } from 'lucide-react';
 import { Card } from './components/Card';
 import { Modal } from './components/Modal';
 import { NewsletterForm } from './components/NewsletterForm';
-import { generateNewsletter, checkTaskStatus } from './api/newsletter';
+import type { ToastEntity } from './components/Toast';
+import { generateNewsletter } from './api/newsletter';
 import type { Task } from './types';
+import { useTaskPolling } from './hooks/useTaskPolling';
+import Toast from './components/Toast';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [newsletterResult, setNewsletterResult] = useState<string | null>(null);
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval>;
-
-    const pollTaskStatus = async () => {
-      if (!currentTask?.task_id) return;
-
-      try {
-        const updatedTask = await checkTaskStatus(currentTask.task_id);
-        
-        if (updatedTask.status.toUpperCase() !== 'PENDING') {
-          // Clear interval as we got a final status
-          clearInterval(intervalId);
-          setIsLoading(false);
-
-          if (updatedTask.status.toUpperCase() === 'SUCCESS') {
-            setNewsletterResult(updatedTask.result || 'Newsletter generated successfully!');
-            setError(null);
-          } else {
-            setError('Failed to generate newsletter. Please try again.');
-            setNewsletterResult(null);
-          }
-        }
-      } catch (err) {
-        clearInterval(intervalId);
-        setError('Failed to check task status');
-        setIsLoading(false);
-      }
-    };
-
-    if (currentTask && isLoading) {
-      // Poll every 2 seconds
-      intervalId = setInterval(pollTaskStatus, 2000);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [currentTask, isLoading]);
+  const [alert, setAlert] = useState<ToastEntity| null>(null);
 
   const handleSubmit = async (topics: string) => {
     setIsLoading(true);
     setError(null);
-    setNewsletterResult(null);
 
     try {
       const response = await generateNewsletter({
@@ -72,49 +34,64 @@ function App() {
     }
   };
 
-  const handleCloseModal = () => {
-    if (!isLoading) {
-      setIsModalOpen(false);
-      setNewsletterResult(null);
-      setError(null);
-      setCurrentTask(null);
-    }
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setError(null);
+    setCurrentTask(null);
   };
+
+  const handleCloseModal = () => {
+    if(isLoading) return;
+    
+    closeModal()
+  }
+
+  const handleFinish = () => {
+    let alertConfig: ToastEntity = { type: 'success', message: "Você foi inscrito com sucesso!" };
+    
+    if (error) {
+      alertConfig = { type: 'error', message: "Ocorreu um erro, tente novamente mais tarde" };
+    }
+    
+    setAlert(alertConfig);
+    closeModal();
+  };
+
+  useTaskPolling({
+    currentTask,
+    isLoading,
+    setIsLoading,
+    setError,
+    onFinish: handleFinish,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Newsletter Subscription</h1>
-        
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Assinatura de Newsletter</h1>
+
+        {alert && (
+          <Toast
+            message={alert.message}
+            type={alert.type}
+            duration={3000}
+            onClose={() => setAlert(null)}
+          />
+        )}
+
+        <div className="grid gap-6">
           <Card
             title="Newsletter"
-            description="Subscribe to receive personalized content"
+            description="Inscreva-se para receber conteúdo personalizado."
             icon={<NewspaperIcon className="w-6 h-6 text-blue-600" />}
             onClick={() => setIsModalOpen(true)}
           />
         </div>
 
-        <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal} isLoading={isLoading}>
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-gray-900">Subscribe to Newsletter</h2>
-            
-            {error && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-md">
-                {error}
-              </div>
-            )}
-
-            {newsletterResult && (
-              <div className="p-3 bg-green-100 text-green-700 rounded-md whitespace-pre-wrap">
-                {JSON.stringify(newsletterResult)}
-              </div>
-            )}
-
-            <NewsletterForm
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-            />
+            <h2 className="text-2xl font-semibold text-gray-900">Inscreva-se na Newsletter</h2>
+            <NewsletterForm onSubmit={handleSubmit} isLoading={isLoading} />
           </div>
         </Modal>
       </div>

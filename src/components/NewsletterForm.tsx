@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 
 interface NewsletterFormProps {
   onSubmit: (description: string) => void;
@@ -38,7 +38,10 @@ export function NewsletterForm({ onSubmit, isLoading }: NewsletterFormProps) {
         className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
-          'Processando...'
+          <>
+          Processando...
+          <Loader2 className='animate-spin' />
+          </>
         ) : (
           <>
             <Send size={20} />

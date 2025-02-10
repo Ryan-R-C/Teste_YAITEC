@@ -19,7 +19,7 @@ export function NewsletterForm({ onSubmit, isLoading }: NewsletterFormProps) {
       <div>
         <label
           htmlFor="topics"
-          className="block text-lg font-medium text-gray-700 mb-2"
+          className="block text-lg font-medium text-gray-700 mb-2 cursor-inherit"
         >
           Me descreva quais temas do newsletter você deseja receber:
         </label>
